@@ -9,6 +9,7 @@ import keyboard
 gaze = GazeTracking()
 import cv2
 from pynput import keyboard
+import time
 # from mark_detector import MarkDetector
 # from pose_estimator import PoseEstimator
 
@@ -111,13 +112,11 @@ while True:
             cv2.imwrite('dong.jpg', frame)
             dong_image = face_recognition.load_image_file("dong.jpg")
             dong_encoding = face_recognition.face_encodings(dong_image)[0]
-            if len(dong_encoding)==0:
-                print('다시 s 눌러주세요')
         cv2.imshow('frame', frame)
         if cv2.waitKey(1) == ord('q'):
             break
     except:
-        print('continue')
+        print('다시 s 눌러주세요')
         continue
 
 cv2.destroyAllWindows()
@@ -157,7 +156,11 @@ known_face_names = [
     "Joe Biden"
 ]
 font = cv2.FONT_HERSHEY_DUPLEX
+tmp_time = time.time()
 while True:
+    delay = time.time() - tmp_time
+    tmp_time = time.time()
+    print(delay)
     ret, frame = cap.read()
     
     # rgb_small_frame = frame[:, :, ::-1]
@@ -214,7 +217,7 @@ while True:
             font = cv2.FONT_HERSHEY_DUPLEX
             cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
         else:
-                
+            print('부정 행위 LEVEL: 3')
             # Draw a box around the face
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
