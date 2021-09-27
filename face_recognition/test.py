@@ -160,9 +160,9 @@ tmp_time = time.time()
 while True:
     delay = time.time() - tmp_time
     tmp_time = time.time()
-    print(delay)
     ret, frame = cap.read()
-    
+    fps = 1 / delay
+    print("fps: %.2f" % fps)
     # rgb_small_frame = frame[:, :, ::-1]
     # Find all the faces and face encodings in the current frame of video
     face_locations = face_recognition.face_locations(frame)
