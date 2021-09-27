@@ -18,6 +18,8 @@ class GazeTracking(object):
         self.eye_left = None
         self.eye_right = None
         self.calibration = Calibration()
+        self.left_cal = 0
+        self.right_cal = 0
 
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -95,16 +97,20 @@ class GazeTracking(object):
             pupil_left = self.eye_left.pupil.y / (self.eye_left.center[1] * 2 - 10)
             pupil_right = self.eye_right.pupil.y / (self.eye_right.center[1] * 2 - 10)
             return (pupil_left + pupil_right) / 2
+    def get_right_cal(self, val):
+        self.right_cal = val
+    def get_left_cal(self, val):
+        self.left_cal = val
 
     def is_right(self):
         """Returns true if the user is looking to the right"""
         if self.pupils_located:
-            return self.horizontal_ratio() <= 0.35
+            return self.horizontal_ratio() <= self.right_cal
 
     def is_left(self):
         """Returns true if the user is looking to the left"""
         if self.pupils_located:
-            return self.horizontal_ratio() >= 0.65
+            return self.horizontal_ratio() >= self.left_cal
 
     def is_center(self):
         """Returns true if the user is looking to the center"""

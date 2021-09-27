@@ -8,11 +8,9 @@ from gaze_tracking import GazeTracking
 import keyboard
 gaze = GazeTracking()
 import cv2
-from pynput import keyboard
 import time
 from mark_detector import MarkDetector
 from pose_estimator import PoseEstimator
-
 
 
 
@@ -71,7 +69,7 @@ from pose_estimator import PoseEstimator
 # else:
 #     print("It's not a picture of me!")
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 # # known_image = face_recognition.load_image_file("cap.jpg")
 # # dong_encoding = face_recognition.face_encodings(known_image)[0]
 
@@ -107,11 +105,15 @@ biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
 while True:
     try:
         ret, frame = cap.read()
+        if not ret:
+            continue
         if cv2.waitKey(1) == ord('s'):
             print('캡쳐했습니다.')
-            cv2.imwrite('dong.jpg', frame)
-            dong_image = face_recognition.load_image_file("dong.jpg")
-            dong_encoding = face_recognition.face_encodings(dong_image)[0]
+            # cv2.imwrite('dong.jpg', frame)
+            face_locations = face_recognition.face_locations(frame)
+            dong_encoding = face_recognition.face_encodings(frame, face_locations)[0]
+            # dong_image = face_recognition.load_image_file("dong.jpg")
+            # dong_encoding = face_recognition.face_encodings(dong_image)[0]
         cv2.imshow('frame', frame)
         if cv2.waitKey(1) == ord('q'):
             break
@@ -157,112 +159,143 @@ known_face_names = [
 ]
 font = cv2.FONT_HERSHEY_DUPLEX
 tmp_time = time.time()
+i=0
+flag = False
+flag2 = False
+left_cal_list = []
+right_cal_list = []
 while True:
+    ret, frame = cap.read()
+    if not ret:
+        continue
+    i+=1
     delay = time.time() - tmp_time
     tmp_time = time.time()
-    ret, frame = cap.read()
     small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
     # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-    rgb_small_frame = small_frame[:, :, ::-1]
-    frame = rgb_small_frame
+    # rgb_small_frame = small_frame[:, :, ::-1]
     try:
         fps = 1 / delay
     except:
         print('0값임')
         continue
-    print("fps: %.2f" % fps)
+    #print("fps: %.2f" % fps)
     # rgb_small_frame = frame[:, :, ::-1]
     # Find all the faces and face encodings in the current frame of video
-    face_locations = face_recognition.face_locations(frame)
-    face_encodings = face_recognition.face_encodings(frame, face_locations)
     facebox = mark_detector.extract_cnn_facebox(frame)
     if facebox is not None:
-            x1, y1, x2, y2 = facebox
-            face_img = frame[y1: y2, x1: x2]
-            marks = mark_detector.detect_marks(face_img)
-            marks *= (x2 - x1)
-            marks[:, 0] += x1
-            marks[:, 1] += y1
-            pose = pose_estimator.solve_pose_by_68_points(marks)
+        x1, y1, x2, y2 = facebox
+        face_img = frame[y1: y2, x1: x2]
+        marks = mark_detector.detect_marks(face_img)
+        marks *= (x2 - x1)
+        marks[:, 0] += x1
+        marks[:, 1] += y1
+        pose = pose_estimator.solve_pose_by_68_points(marks)
             
-            if pose[0][0] > 0.5:
-                # print('left', pose[0][0])
-                cv2.putText(frame, 'left', (x1 + 6, y1 - 6), font, 1.0, (255, 255, 255), 1)
-                mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
-            elif pose[0][0] < -0.5:
-                # print('right', pose[0][0])
-                cv2.putText(frame, 'right', (x1 + 6, y1 - 6), font, 1.0, (255, 255, 255), 1)
-                mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
-            if pose[0][1] > 0.3:
-                # print('down', pose[0][1])
-                cv2.putText(frame, 'down', (x1 + 6, y2 - 6), font, 1.0, (255, 255, 255), 1)
-                mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
-            elif pose[0][1] < -0.3:
-                # print('up', pose[0][1])
-                cv2.putText(frame, 'up', (x1 + 6, y2 - 6), font, 1.0, (255, 255, 255), 1)
-                mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
+        if pose[0][0] > 0.5:
+            # print('left', pose[0][0])
+            cv2.putText(frame, 'left', (x1 + 6, y1 - 6), font, 1.0, (255, 255, 255), 1)
+            mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
+        elif pose[0][0] < -0.5:
+            # print('right', pose[0][0])
+            cv2.putText(frame, 'right', (x1 + 6, y1 - 6), font, 1.0, (255, 255, 255), 1)
+            mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
+        if pose[0][1] > 0.4:
+            # print('down', pose[0][1])
+            cv2.putText(frame, 'down', (x1 + 6, y2 - 6), font, 1.0, (255, 255, 255), 1)
+            mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
+        elif pose[0][1] < -0.3:
+            # print('up', pose[0][1])
+            cv2.putText(frame, 'up', (x1 + 6, y2 - 6), font, 1.0, (255, 255, 255), 1)
+            mark_detector.draw_box(frame, [facebox], box_color=(0, 0, 255))
 
     face_names = []
-    for face_encoding in face_encodings:
-        # See if the face is a match for the known face(s)
-        matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
-        name = "Unknown"
+    if i%10 ==0:
+        face_locations = face_recognition.face_locations(small_frame)
+        face_encodings = face_recognition.face_encodings(small_frame, face_locations)
+        for face_encoding in face_encodings:
+            # See if the face is a match for the known face(s)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
+            name = "Unknown"
 
-        # If a match was found in known_face_encodings, just use the first one.
-        if True in matches:
-            first_match_index = matches.index(True)
-            name = known_face_names[first_match_index]
+            # If a match was found in known_face_encodings, just use the first one.
+            if True in matches:
+                first_match_index = matches.index(True)
+                name = known_face_names[first_match_index]
 
-        face_names.append(name)
-    
-    for (top, right, bottom, left), name in zip(face_locations, face_names):
-        if name == "Dong":               
-            # Draw a box around the face
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            face_names.append(name)
+        
+        for (top, right, bottom, left), name in zip(face_locations, face_names):
+            top *= 4
+            right *= 4
+            bottom *= 4
+            left *= 4
+            if name == "Dong":               
+                # Draw a box around the face
+                cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
-            # Draw a label with a name below the face
-            # cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-            font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-        else:
-            print('부정 행위 LEVEL: 3')
-            # Draw a box around the face
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+                # Draw a label with a name below the face
+                # cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+                font = cv2.FONT_HERSHEY_DUPLEX
+                cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+            else:
+                print('부정 행위 LEVEL: 3')
+                # Draw a box around the face
+                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
-            # Draw a label with a name below the face
-            # cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-            font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+                # Draw a label with a name below the face
+                # cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+                font = cv2.FONT_HERSHEY_DUPLEX
+                cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
     # results = face_recognition.compare_faces([dong_encoding], unknown_face_encoding)
     # print(results)
-    
 
-
+    if keyboard.is_pressed('o'):
+        flag = False
+        flag2 = False
+        left_cal_list = []
+        right_cal_list = []
+        print('리셋 했습니다.')
+    if keyboard.is_pressed('l') and not flag:
+        if gaze.horizontal_ratio():
+            left_cal_list.append(gaze.horizontal_ratio())
+            if len(left_cal_list) >= 20:
+                left_cal = sum(left_cal_list)/20
+                flag = True
+                gaze.get_left_cal(left_cal)
+                print('l', left_cal, '끝났습니다.')
+    if keyboard.is_pressed('r') and not flag2:
+        if gaze.horizontal_ratio():
+            right_cal_list.append(gaze.horizontal_ratio())
+            if len(right_cal_list) >= 20:
+                right_cal = sum(right_cal_list)/20
+                flag2 = True
+                gaze.get_right_cal(right_cal-0.05)
+                print('r', right_cal, '끝났습니다.')
     # We send this frame to GazeTracking to analyze it
     gaze.refresh(frame)
 
     frame = gaze.annotated_frame()
     text = ""
+    if flag and flag2:
+        if gaze.is_right():
+            text = "Looking right"
+        elif gaze.is_left():
+            text = "Looking left"
+        print(gaze.horizontal_ratio())
+        cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 
-    if gaze.is_blinking():
-        text = "Blinking"
-    elif gaze.is_right():
-        text = "Looking right"
-    elif gaze.is_left():
-        text = "Looking left"
-    elif gaze.is_center():
-        text = "Looking center"
+        #left_pupil = gaze.pupil_left_coords()
+        # right_pupil = gaze.pupil_right_coords()
+    #cv2.putText(frame, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+    #cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
-    cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
-
-    left_pupil = gaze.pupil_left_coords()
-    right_pupil = gaze.pupil_right_coords()
-    cv2.putText(frame, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
-    cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
-
-
+    if keyboard.is_pressed('ctrl+c'):
+        print('복사하셨습니다.')
+    if keyboard.is_pressed('ctrl+v'):
+        print('붙혀넣기 하셨습니다.')
 
 
 
