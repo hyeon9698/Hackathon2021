@@ -80,10 +80,10 @@ width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
 
-pose_estimator = PoseEstimator(img_size=(height, width))
+# pose_estimator = PoseEstimator(img_size=(height, width))
 
     # 3. Introduce a mark detector to detect landmarks.
-mark_detector = MarkDetector()
+# mark_detector = MarkDetector()
 
 
 
