@@ -161,6 +161,11 @@ while True:
     delay = time.time() - tmp_time
     tmp_time = time.time()
     ret, frame = cap.read()
+    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+
+    # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+    rgb_small_frame = small_frame[:, :, ::-1]
+    frame = rgb_small_frame
     try:
         fps = 1 / delay
     except:
