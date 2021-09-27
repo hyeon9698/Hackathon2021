@@ -161,7 +161,11 @@ while True:
     delay = time.time() - tmp_time
     tmp_time = time.time()
     ret, frame = cap.read()
-    fps = 1 / delay
+    try:
+        fps = 1 / delay
+    except:
+        print('0값임')
+        continue
     print("fps: %.2f" % fps)
     # rgb_small_frame = frame[:, :, ::-1]
     # Find all the faces and face encodings in the current frame of video
